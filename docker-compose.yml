@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  chat-service:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - .:/opt/todoapp
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    working_dir: /opt/todoapp
+    command: sh -c "go run ."
+    links:
+      - mongodb
+    env_file:
+      - .env
+
+  nginx:
+    image: nginx
+    ports:
+    - 80:80
+    - 443:443
+    links:
+      - chat-service
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+
+
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    environment:
+      MONGO_INITDB_DATABASE: ${DB_NAME}
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS}
+    volumes:
+      - db-data:/data/db
+      - ./config:/etc/mongo
+    command: --config /etc/mongo/mongod.conf
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: 'mongodb'
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${DB_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${DB_PASS}
+    links:
+      - mongodb
+
+volumes:
+  db-data:
+  db-config:
+
+
+networks:
+  default:
+
+
